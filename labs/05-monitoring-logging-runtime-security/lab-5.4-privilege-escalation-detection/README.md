@@ -11,8 +11,14 @@
 > kiến thức Domain 3 (Security Context, privilege escalation) với Domain 5
 > (Falco) — đúng tinh thần "ứng dụng kiến thức đã học vào tình huống mới"
 > mà đề thi CKS thường yêu cầu, nhưng không có gì để bạn tra "đáp án gốc"
-> trong tài liệu. **CHƯA TEST TRÊN CỤM** — làm cẩn thận, có thể rule 2
-> (setuid/setgid) cần điều chỉnh cú pháp `evt.dir` tuỳ phiên bản Falco.
+> trong tài liệu.
+>
+> **✅ Đã test trên cụm thật** (2026-10-11), đã sửa **1 lỗi nghiêm trọng**:
+> rule "Privileged container started" dùng macro `container_started`
+> **không tồn tại** trong Falco 0.45.0 → không phải rule đó âm thầm bị bỏ
+> qua, mà **toàn bộ Falco pod crash** (`CrashLoopBackOff`, mọi detection
+> trên node đó ngừng hoạt động) vì Falco coi rules file "Invalid" và từ
+> chối khởi động. Đã sửa, xem phần "Phát hiện quan trọng" ở cuối file.
 
 ## Mục tiêu
 
@@ -44,6 +50,18 @@ Kỳ vọng: Falco log "Unexpected process spawned in container" khi `apt-get`,
 `nc` chạy (không nằm trong whitelist `nginx, sh, bash, cat, ls, curl,
 wget`) — đây chính là cách phát hiện "attacker cài thêm tool sau khi có
 shell access".
+
+> **⚠️ Thực tế quan sát được: rule này rất noisy với whitelist đơn giản.**
+> Ngay khi pod `nginx` khởi động — **chưa cần `exec` gì cả** — rule đã bắn
+> alert cho chính script entrypoint của image (`docker-entrypoint.sh` gọi
+> `awk`, `basename`, `30-tune-worker-processes.sh`...), vì các binary đó
+> không nằm trong whitelist. Trên cụm thật, rule tương tự cũng bắn liên
+> tục cho các pod hệ thống như `kube-proxy` (`iptables`/`ip6tables` là
+> hành vi bình thường, không phải attacker). Đây là bài học quan trọng cho
+> đề thi: **whitelist tĩnh kiểu "liệt kê vài binary" không đủ cho môi
+> trường thật** — cần whitelist theo entrypoint/base-image cụ thể của từng
+> workload (hoặc dùng tool build whitelist tự động như Falco's "drift"
+> plugin chính thức), không phải liệt kê thủ công vài tên quen mắt.
 
 ## Bước 3 — Kịch bản 2: Privileged container khởi động
 
@@ -89,6 +107,67 @@ hiểu **defense in depth**, kết hợp nhiều lớp thay vì chỉ dựa vào
 ```bash
 kubectl delete pod nginx nginx-immutable test-setuid --ignore-not-found
 ```
+
+## Phát hiện quan trọng từ test thực tế (2026-10-11)
+
+Rule gốc trong `manifests/detect-privesc-rules.yaml` có **1 lỗi nghiêm
+trọng** (Falco crash) và 1 warning deprecated — cả 2 đã sửa trực tiếp
+trong file.
+
+**1. [Nghiêm trọng] Macro `container_started` không tồn tại trong Falco
+0.45.0.**
+
+Bản gốc:
+
+```yaml
+condition: container_started and container.privileged=true
+```
+
+Khi `helm upgrade` với rule này, `kubectl get pods -n falco` cho thấy pod
+vào `CrashLoopBackOff`. Log container `falco`:
+
+```
+Error: /etc/falco/rules.d/rules-privesc.yaml: Invalid
+LOAD_ERR_VALIDATE (Error validating rule/macro/list/exception objects):
+Undefined macro 'container_started' used in filter.
+```
+
+Khác với lỗi rule thông thường (Falco bỏ qua rule lỗi, các rule khác vẫn
+chạy), lỗi **macro không tồn tại** khiến Falco coi toàn bộ rules file là
+invalid và **từ chối khởi động** — daemonset mất hẳn khả năng detect trên
+node đó, không chỉ mất 1 rule. Đây là lý do nên luôn `kubectl logs` kiểm
+tra ngay sau mỗi `helm upgrade` rule, không chỉ nhìn `STATUS Running`
+(pod cũ vẫn Running cho tới khi pod mới thay thế xong, dễ tạo cảm giác
+"vẫn ổn" trong vài giây dù rule mới bị lỗi).
+
+Falco không có khái niệm "container vừa start" như 1 macro riêng — cách
+built-in ruleset xử lý tương tự (vd rule "Debugfs Launched in Privileged
+Container") là kết hợp `spawned_process` (process được spawn — gần đúng
+thời điểm container start nếu đó là tiến trình đầu tiên) với
+`container.privileged=true`. Fix dùng thêm macro built-in `proc_is_new`
+(tuổi process ≤ 5 giây) để giới hạn alert chỉ trong khoảng ngắn sau khi
+container khởi động, tránh bắn lại mỗi lần có process mới:
+
+```yaml
+condition: >
+  spawned_process and container
+  and container.privileged=true and proc_is_new
+```
+
+**2. [Warning, không fatal] `evt.dir = <` đã deprecated.**
+
+```
+LOAD_DEPRECATED_ITEM (Used deprecated item: field 'evt.dir'): due to the
+drop of enter events, 'evt.dir = <' always evaluates to true...
+```
+
+Falco bản mới không còn phân biệt enter/exit event theo cách cũ nên
+`evt.dir = <` luôn đúng — vô nghĩa, có thể xoá an toàn. Đã xoá khỏi
+condition của rule "Setuid or setgid syscall in container".
+
+**Kết quả sau khi sửa:** cả 3 kịch bản (drift, privileged container
+started, setuid/setgid qua `gosu`) đều hoạt động đúng, không còn warning
+khi load rule.
 
 ## Mẹo thi
 

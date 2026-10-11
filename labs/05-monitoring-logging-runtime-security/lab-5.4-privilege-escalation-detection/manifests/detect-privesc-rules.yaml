@@ -21,7 +21,6 @@ customRules:
         đáng để đổi UID/GID lúc runtime.
       condition: >
         container and evt.type in (setuid, setgid)
-        and evt.dir = <
       output: >
         setuid/setgid syscall called inside container
         (user=%user.name container=%container.id proc=%proc.name
@@ -31,7 +30,8 @@ customRules:
     - rule: Privileged container started
       desc: Cảnh báo ngay khi có container privileged mới khởi động.
       condition: >
-        container_started and container.privileged=true
+        spawned_process and container
+        and container.privileged=true and proc_is_new
       output: >
         Privileged container started
         (user=%user.name container=%container.id image=%container.image.repository)

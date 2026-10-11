@@ -34,7 +34,7 @@ Mỗi domain thi CKS là một thư mục trong `labs/`, mỗi lab là một th�
 | 2 | System Hardening | 15% | `labs/02-system-hardening` | ✅ 5/5 lab, 3 đã test trên cụm, 2 dạng hướng dẫn |
 | 3 | Minimize Microservice Vulnerabilities | 20% | `labs/03-minimize-microservice-vulnerabilities` | ✅ 6/6 lab, 4 đã test trên cụm |
 | 4 | Supply Chain Security | 20% | `labs/04-supply-chain-security` | ✅ 5/5 lab, 4 đã test trên máy làm việc |
-| 5 | Monitoring, Logging & Runtime Security | 20% | `labs/05-monitoring-logging-runtime-security` | ⚠️ 4/4 lab viết xong nhưng **chưa test** (mất kết nối mạng giữa buổi) — tự verify khi có mạng lại |
+| 5 | Monitoring, Logging & Runtime Security | 20% | `labs/05-monitoring-logging-runtime-security` | ✅ 4/4 lab, test trên cụm thật 2026-10-11 — phát hiện & sửa 4 lỗi thực tế (1 làm Falco crash hoàn toàn) |
 
 Nguồn ánh xạ nội dung: notes KodeKloud CKS (mục lục đầy đủ trong MCP
 `notes-kodekloud`, khoá "Certified-Kubernetes-Security-Specialist-CKS").

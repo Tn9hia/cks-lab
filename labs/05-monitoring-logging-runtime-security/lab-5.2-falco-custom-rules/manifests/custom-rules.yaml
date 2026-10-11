@@ -8,7 +8,7 @@ customRules:
 
     - rule: Detect Shell inside a container
       desc: Alert if a shell such as bash is opened inside a container
-      condition: container and proc.name in (linux_shells)
+      condition: spawned_process and container and proc.name in (linux_shells)
       output: >
         Shell opened inside container
         (user=%user.name container=%container.id image=%container.image.repository
@@ -32,7 +32,7 @@ customRules:
         kodekloud/simple-webapp image (đổi image cho phù hợp lab của bạn)
       condition: >
         open_write and container
-        and container.image.repository = "kodekloud/simple-webapp"
+        and container.image.repository contains "kodekloud/simple-webapp"
         and fd.directory != "/opt/app"
       output: >
         Unexpected write outside /opt/app

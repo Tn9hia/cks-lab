@@ -4,10 +4,11 @@
 **Thời gian gợi ý:** 20 phút
 **Yêu cầu:** đã làm Lab 3.1 (Security Context) và Lab 5.1 (Falco).
 
-> **⚠️ CHƯA TEST TRÊN CỤM** (mất kết nối mạng giữa buổi — xem ghi chú ở Lab
-> 5.1). Phần `readOnlyRootFilesystem` bản thân nó **đã được test kỹ ở Lab
-> 3.1** trên cụm của bạn và hoạt động đúng; phần **mới, chưa test** trong
-> lab này là kết hợp với `privileged: true` và quan sát qua Falco.
+> **✅ Đã test trên cụm thật** (2026-10-11). Kết quả khớp 100% với kỳ vọng
+> trong tài liệu: `apt update` trong container báo đúng lỗi
+> `Read-only file system` dù `privileged: true`; Falco (sau khi áp rule đã
+> fix ở Lab 5.2) bắt đúng 1 dòng "Shell opened inside container" sạch,
+> không noise.
 
 ## Mục tiêu
 

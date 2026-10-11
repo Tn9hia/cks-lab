@@ -3,12 +3,13 @@
 **Domain:** Monitoring, Logging & Runtime Security
 **Thời gian gợi ý:** 20 phút
 
-> **⚠️ CHƯA TEST TRÊN CỤM:** lab này viết trong lúc mất kết nối mạng tới
-> cụm (VPN rớt giữa buổi). Nội dung dựa trên cách dùng chuẩn của Falco Helm
-> chart (rất ổn định, được dùng rộng rãi) nhưng chưa được tự chạy-verify
-> trên cụm của bạn như các lab khác trong bộ này. Hãy tự chạy và đối chiếu,
-> hoặc nhờ chạy lại khi có mạng — nếu có sai lệch (vd version chart thay đổi
-> API), báo lại để cập nhật.
+> **✅ Đã test trên cụm thật** (2026-10-11) — Falco `0.45.0` (chart
+> `falcosecurity/falco`), driver `modern_ebpf`, trên cụm arm64
+> (`k8s-master` + `k8s-worker-1`, kernel 6.8, containerd). Cài qua Helm chạy
+> trơn tru, DaemonSet `Running 2/2` trên cả 2 node, bắt alert built-in ngay
+> (`cat /etc/shadow` → `Sensitive file opened for reading by non-trusted
+> program`). Có vài warning vô hại trong log khởi động (xem bên dưới) —
+> không ảnh hưởng detection.
 
 ## Mục tiêu
 
@@ -58,6 +59,15 @@ kubectl logs -n falco -l app.kubernetes.io/name=falco --tail=50
 Lỗi hay gặp: kernel không hỗ trợ eBPF driver đang chọn → thử đổi
 `driver.kind=ebpf` (legacy eBPF) hoặc `driver.kind=kmod` (kernel module,
 cần kernel headers trên node).
+
+**Thực tế quan sát được:** log khởi động có vài dòng warning dạng
+`libbpf: failed to determine tracepoint 'syscalls/sys_enter_creat' perf
+event ID` và tương tự cho `sys_enter_open`. Đây **không phải lỗi** —
+message tự giải thích rõ "Detection will continue to work, but TOCTOU
+mitigation may not properly work". Lý do: kernel/arch hiện tại định nghĩa
+lại 1 số syscall cũ (`creat`, `open`) qua `openat`/`openat2`, nên tracepoint
+riêng cho bản cũ không tồn tại — core detection vẫn hoạt động đầy đủ qua
+`openat`. Có thể bỏ qua các warning này.
 
 ## Bước 4 — Xem log Falco trực tiếp
 
