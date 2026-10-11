@@ -1,0 +1,40 @@
+customRules:
+  rules-shell-and-shadow.yaml: |-
+    - list: linux_shells
+      items: [bash, zsh, ksh, sh, csh]
+
+    - macro: container
+      condition: container.id != host
+
+    - rule: Detect Shell inside a container
+      desc: Alert if a shell such as bash is opened inside a container
+      condition: container and proc.name in (linux_shells)
+      output: >
+        Shell opened inside container
+        (user=%user.name container=%container.id image=%container.image.repository
+        shell=%proc.name parent=%proc.pname cmdline=%proc.cmdline)
+      priority: WARNING
+
+    - rule: Read sensitive file in container
+      desc: Detect reading of /etc/shadow or /etc/passwd inside a container
+      condition: >
+        open_read and container
+        and (fd.name = /etc/shadow or fd.name = /etc/passwd)
+      output: >
+        Sensitive file opened for reading inside container
+        (user=%user.name container=%container.id image=%container.image.repository
+        file=%fd.name)
+      priority: CRITICAL
+
+    - rule: Unexpected write outside app directory
+      desc: >
+        Detect a write to any file outside /opt/app inside containers using the
+        kodekloud/simple-webapp image (đổi image cho phù hợp lab của bạn)
+      condition: >
+        open_write and container
+        and container.image.repository = "kodekloud/simple-webapp"
+        and fd.directory != "/opt/app"
+      output: >
+        Unexpected write outside /opt/app
+        (user=%user.name container=%container.id file=%fd.name directory=%fd.directory)
+      priority: CRITICAL

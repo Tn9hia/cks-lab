@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: seccheck-unconfined
+spec:
+  restartPolicy: Never
+  securityContext:
+    seccompProfile:
+      type: Unconfined
+  containers:
+    - name: ubuntu
+      image: ubuntu
+      command: ["sh", "-c", "grep Seccomp /proc/1/status; sleep 5"]
+      securityContext:
+        allowPrivilegeEscalation: false

@@ -1,0 +1,38 @@
+customRules:
+  rules-privesc.yaml: |-
+    - rule: Container Drift Detected (new executable spawned)
+      desc: >
+        Phát hiện 1 process mới được spawn trong container mà binary đó
+        không có sẵn từ lúc image được build (dấu hiệu attacker tải thêm
+        tool sau khi khai thác được RCE).
+      condition: >
+        spawned_process and container
+        and not proc.name in (nginx, sh, bash, cat, ls, curl, wget)
+      output: >
+        Unexpected process spawned in container (possible drift/attacker tool)
+        (user=%user.name container=%container.id image=%container.image.repository
+        proc=%proc.name cmdline=%proc.cmdline parent=%proc.pname)
+      priority: WARNING
+
+    - rule: Setuid or setgid syscall in container
+      desc: >
+        Phát hiện container tự gọi setuid/setgid — dấu hiệu tiềm năng của
+        privilege escalation attempt nếu container không có lý do chính
+        đáng để đổi UID/GID lúc runtime.
+      condition: >
+        container and evt.type in (setuid, setgid)
+        and evt.dir = <
+      output: >
+        setuid/setgid syscall called inside container
+        (user=%user.name container=%container.id proc=%proc.name
+        syscall=%evt.type)
+      priority: CRITICAL
+
+    - rule: Privileged container started
+      desc: Cảnh báo ngay khi có container privileged mới khởi động.
+      condition: >
+        container_started and container.privileged=true
+      output: >
+        Privileged container started
+        (user=%user.name container=%container.id image=%container.image.repository)
+      priority: WARNING

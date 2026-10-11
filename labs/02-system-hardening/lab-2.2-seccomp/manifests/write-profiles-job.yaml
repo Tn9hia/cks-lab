@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: write-seccomp-profiles
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      nodeName: k8s-worker-02
+      restartPolicy: Never
+      containers:
+        - name: writer
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /seccomp/profiles
+              cat > /seccomp/profiles/audit.json <<'EOF'
+              {"defaultAction": "SCMP_ACT_LOG"}
+              EOF
+              cat > /seccomp/profiles/violation.json <<'EOF'
+              {"defaultAction": "SCMP_ACT_ERRNO"}
+              EOF
+              cat > /seccomp/profiles/block-chmod.json <<'EOF'
+              {
+                "defaultAction": "SCMP_ACT_ALLOW",
+                "syscalls": [
+                  {
+                    "names": ["chmod", "fchmod", "fchmodat"],
+                    "action": "SCMP_ACT_ERRNO"
+                  }
+                ]
+              }
+              EOF
+              ls -la /seccomp/profiles/
+              echo "done"
+          volumeMounts:
+            - name: seccomp-root
+              mountPath: /seccomp
+      volumes:
+        - name: seccomp-root
+          hostPath:
+            path: /var/lib/kubelet/seccomp
+            type: DirectoryOrCreate

@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-cloud-metadata-egress
+  namespace: lab-metadata
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    # Cho phép egress tới mọi nơi TRỪ dải cloud metadata (169.254.169.254/32)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 169.254.169.254/32
+    # Vẫn cần DNS để resolve tên (metadata IP không cần DNS nên không ảnh hưởng)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

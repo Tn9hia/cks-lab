@@ -1,0 +1,25 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node-and-pod-reader
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: node-and-pod-reader-binding
+  namespace: lab-rbac
+subjects:
+  - kind: ServiceAccount
+    name: pod-reader-sa
+    namespace: lab-rbac
+roleRef:
+  kind: ClusterRole
+  name: node-and-pod-reader
+  apiGroup: rbac.authorization.k8s.io

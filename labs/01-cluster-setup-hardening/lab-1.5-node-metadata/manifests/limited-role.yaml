@@ -1,0 +1,23 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: limited-role
+  namespace: lab-metadata
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: limited-role-binding
+  namespace: lab-metadata
+subjects:
+  - kind: ServiceAccount
+    name: limited-sa
+    namespace: lab-metadata
+roleRef:
+  kind: Role
+  name: limited-role
+  apiGroup: rbac.authorization.k8s.io

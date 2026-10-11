@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kube-bench
+spec:
+  template:
+    spec:
+      hostPID: true
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: kube-bench
+          image: docker.io/aquasec/kube-bench:latest
+          command: ["kube-bench", "run", "--targets", "master,etcd,node,policies"]
+          volumeMounts:
+            - name: var-lib-etcd
+              mountPath: /var/lib/etcd
+              readOnly: true
+            - name: etc-kubernetes
+              mountPath: /etc/kubernetes
+              readOnly: true
+            - name: var-lib-kubelet
+              mountPath: /var/lib/kubelet
+              readOnly: true
+      restartPolicy: Never
+      volumes:
+        - name: var-lib-etcd
+          hostPath:
+            path: /var/lib/etcd
+        - name: etc-kubernetes
+          hostPath:
+            path: /etc/kubernetes
+        - name: var-lib-kubelet
+          hostPath:
+            path: /var/lib/kubelet
+  backoffLimit: 0

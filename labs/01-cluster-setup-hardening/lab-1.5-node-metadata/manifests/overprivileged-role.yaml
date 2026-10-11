@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: overprivileged-node-reader
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: overprivileged-node-reader-binding
+subjects:
+  - kind: ServiceAccount
+    name: limited-sa
+    namespace: lab-metadata
+roleRef:
+  kind: ClusterRole
+  name: overprivileged-node-reader
+  apiGroup: rbac.authorization.k8s.io

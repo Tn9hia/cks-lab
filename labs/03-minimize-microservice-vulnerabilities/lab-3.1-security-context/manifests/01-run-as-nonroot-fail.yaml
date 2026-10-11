@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nonroot-fail
+spec:
+  securityContext:
+    runAsNonRoot: true
+  containers:
+    - name: nginx
+      image: nginx:1.27

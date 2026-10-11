@@ -1,0 +1,43 @@
+# THAM KHẢO — KHÔNG apply trực tiếp file này.
+# Đây là ví dụ minh hoạ những dòng cần THÊM vào
+# /etc/kubernetes/manifests/kube-apiserver.yaml thật trên node của bạn.
+# Manifest thật của bạn có IP, --advertise-address, cert path, v.v. khác —
+# hãy tự thêm các dòng đánh dấu "# <-- THÊM" vào file gốc, đừng copy đè.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kube-apiserver
+  namespace: kube-system
+spec:
+  containers:
+    - name: kube-apiserver
+      image: registry.k8s.io/kube-apiserver:v1.36.0
+      command:
+        - kube-apiserver
+        - --advertise-address=<giữ nguyên giá trị hiện có>
+        - --allow-privileged=true
+        - --authorization-mode=Node,RBAC
+        - --client-ca-file=/etc/kubernetes/pki/ca.crt
+        # ... các flag hiện có khác giữ nguyên ...
+        - --audit-policy-file=/etc/kubernetes/audit/policy.yaml     # <-- THÊM
+        - --audit-log-path=/var/log/kubernetes/audit/audit.log     # <-- THÊM
+        - --audit-log-maxage=7                                     # <-- THÊM
+        - --audit-log-maxbackup=3                                  # <-- THÊM
+        - --audit-log-maxsize=100                                  # <-- THÊM
+      volumeMounts:
+        # ... các volumeMounts hiện có (pki, kubeconfig...) giữ nguyên ...
+        - name: audit-policy                                       # <-- THÊM
+          mountPath: /etc/kubernetes/audit                         # <-- THÊM
+          readOnly: true                                           # <-- THÊM
+        - name: audit-log                                          # <-- THÊM
+          mountPath: /var/log/kubernetes/audit                     # <-- THÊM
+  volumes:
+    # ... các volumes hiện có (pki, kubeconfig...) giữ nguyên ...
+    - name: audit-policy                                           # <-- THÊM
+      hostPath:                                                    # <-- THÊM
+        path: /etc/kubernetes/audit                                # <-- THÊM
+        type: DirectoryOrCreate                                    # <-- THÊM
+    - name: audit-log                                              # <-- THÊM
+      hostPath:                                                    # <-- THÊM
+        path: /var/log/kubernetes/audit                            # <-- THÊM
+        type: DirectoryOrCreate                                    # <-- THÊM

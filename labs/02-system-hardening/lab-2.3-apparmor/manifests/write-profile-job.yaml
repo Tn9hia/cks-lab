@@ -1,0 +1,33 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: write-apparmor-profile
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      nodeName: k8s-worker-02
+      restartPolicy: Never
+      containers:
+        - name: writer
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              cat > /etc/apparmor.d/apparmor-deny-write <<'EOF'
+              profile apparmor-deny-write flags=(attach_disconnected) {
+                file,
+                # Deny all file writes.
+                deny /** w,
+              }
+              EOF
+              cat /etc/apparmor.d/apparmor-deny-write
+          volumeMounts:
+            - name: apparmor-d
+              mountPath: /etc/apparmor.d
+      volumes:
+        - name: apparmor-d
+          hostPath:
+            path: /etc/apparmor.d
+            type: DirectoryOrCreate
